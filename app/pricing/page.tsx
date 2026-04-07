@@ -23,9 +23,9 @@ export default function PricingPage() {
           {/* Free Plan */}
           <Card className="border-border/50 bg-card p-8">
             <div className="mb-6">
-              <h3 className="mb-2 text-2xl font-bold">Free</h3>
+              <h3 className="mb-2 text-2xl font-bold">Starters Pack</h3>
               <div className="mb-4">
-                <span className="text-4xl font-bold">$0</span>
+                <span className="text-4xl font-bold">$199.99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
               <p className="text-sm text-muted-foreground">Perfect for individuals verifying occasional documents</p>
@@ -66,7 +66,7 @@ export default function PricingPage() {
             <div className="mb-6">
               <h3 className="mb-2 text-2xl font-bold">Professional</h3>
               <div className="mb-4">
-                <span className="text-4xl font-bold">$29</span>
+                <span className="text-4xl font-bold">$499.99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
               <p className="text-sm text-muted-foreground">For professionals and small teams</p>
@@ -351,7 +351,7 @@ export default function PricingPage() {
           </div>
 
           <div className="mt-6 border-t border-border/40 pt-6 text-center text-sm text-muted-foreground">
-            © 2025 Shaji. All rights reserved.
+            © {new Date().getFullYear()} Shaji. All rights reserved.
           </div>
         </div>
       </footer>

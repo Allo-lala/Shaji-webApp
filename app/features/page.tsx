@@ -377,7 +377,7 @@ export default function FeaturesPage() {
 
             <div className="flex items-center gap-4">
               <a
-                href="https://github.com"
+                href="https://github.com/Allo-lala/Shaji-webApp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -388,7 +388,7 @@ export default function FeaturesPage() {
                 </svg>
               </a>
               <a
-                href="https://x.com"
+                href="https://x.com/shaji"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -402,7 +402,7 @@ export default function FeaturesPage() {
           </div>
 
           <div className="mt-6 border-t border-border/40 pt-6 text-center text-sm text-muted-foreground">
-            © 2025 Shaji. All rights reserved.
+            © {new Date().getFullYear()} Shaji. All rights reserved.
           </div>
         </div>
       </footer>

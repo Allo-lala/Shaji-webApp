@@ -76,7 +76,7 @@ export default function HomePage() {
         <div className="mb-12 text-center">
           <h2 className="mb-4 text-3xl font-bold md:text-4xl">Why Choose Shaji?</h2>
           <p className="text-lg text-muted-foreground">
-            Built on cutting-edge blockchain technology for maximum security and trust
+            Built on blockchain technology for maximum security and trust
           </p>
         </div>
 
@@ -199,9 +199,9 @@ export default function HomePage() {
             Join thousands of users who trust Shaji for secure document verification
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="#">
+            {/* <Link href="#"> */}
               <Button size="lg">Download Shaji</Button>
-            </Link>
+            {/* </Link> */}
             <div className="flex items-center gap-3">
               <a href="#" target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="lg" className="gap-2 bg-transparent">
@@ -251,7 +251,7 @@ export default function HomePage() {
 
             <div className="flex items-center gap-4">
               <a
-                href="https://github.com/allo-lala"
+                href="https://github.com/Allo-lala/Shaji-webApp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -262,7 +262,7 @@ export default function HomePage() {
                 </svg>
               </a>
               <a
-                href="https://x.com/_alanyi_"
+                href="https://x.com/shaji"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
@@ -276,7 +276,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 border-t border-border/40 pt-6 text-center text-sm text-muted-foreground">
-            © 2025 Shaji. All rights reserved.
+                © {new Date().getFullYear()} Shaji. All rights reserved.
           </div>
         </div>
       </footer>
