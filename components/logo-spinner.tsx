@@ -41,7 +41,7 @@ export function LogoSpinner({ fullScreen = true }: { fullScreen?: boolean }) {
             <img src="/logo.png" alt="Shaji" className="h-6 w-6 rounded-full" />
           </div>
         </div>
-        <p className="text-sm text-muted-foreground tracking-wide">Loading…</p>
+        {/* <p className="text-sm text-muted-foreground tracking-wide">Loading…</p> */}
       </div>
     </div>
   )
