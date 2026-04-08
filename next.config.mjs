@@ -7,12 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
-  turbopack: {
-    resolveAlias: {
-      "thread-stream": { browser: false },
-      "worker_threads": { browser: false },
-    },
-  },
+  turbopack: {},
 }
 
 export default nextConfig
