@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { useRouter } from "next/navigation"
+import { LogoSpinner } from "@/components/logo-spinner"
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -64,6 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: handleLogin,
     logout: handleLogout,
     isReady,
+  }
+
+  if (!isReady) {
+    return <LogoSpinner />
   }
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

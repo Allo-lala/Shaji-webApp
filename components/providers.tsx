@@ -4,6 +4,7 @@ import type React from "react"
 import { PrivyProvider } from "@privy-io/react-auth"
 import { useEffect, useState } from "react"
 import { AuthProvider } from "@/lib/auth-context"
+import { LogoSpinner } from "@/components/logo-spinner"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -42,7 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   if (!mounted) {
-    return null
+    return <LogoSpinner />
   }
 
   return (
