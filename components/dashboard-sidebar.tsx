@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Shield, FileText, PenTool, User, Share2, Settings, Menu, X } from "lucide-react"
+import { Shield, FileText, PenTool, User, Share2, Settings, Menu, X, CreditCard, Building2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,8 @@ const navigation = [
   { name: "Signatures", href: "/dashboard/signatures", icon: PenTool },
   { name: "Identity Profile", href: "/dashboard/profile", icon: User },
   { name: "Shared Files", href: "/dashboard/shared", icon: Share2 },
+  { name: "Pricing", href: "/dashboard/pricing", icon: CreditCard },
+  { name: "Enterprise", href: "/dashboard/pricing#enterprise", icon: Building2 },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 

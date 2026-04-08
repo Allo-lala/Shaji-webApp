@@ -70,3 +70,85 @@ export async function getSharedFiles(userId: number) {
     ORDER BY sf.created_at DESC
   `
 }
+
+// ── Subscription helpers ──────────────────────────────────────────────────────
+
+export interface SubscriptionRow {
+  id: number
+  user_id: number
+  stripe_customer_id: string
+  stripe_subscription_id: string | null
+  stripe_price_id: string | null
+  plan_name: string | null
+  status: string
+  current_period_end: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Look up a subscription by wallet address, joining through the users table.
+ * Returns null when no subscription row exists for the given wallet.
+ */
+export async function getSubscriptionByWallet(
+  walletAddress: string
+): Promise<SubscriptionRow | null> {
+  const rows = await sql`
+    SELECT s.*
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    WHERE u.wallet_address = ${walletAddress}
+    LIMIT 1
+  `
+  return (rows[0] as SubscriptionRow) || null
+}
+
+export interface UpsertSubscriptionData {
+  stripeCustomerId: string
+  stripeSubscriptionId?: string | null
+  stripePriceId?: string | null
+  planName?: string | null
+  status: string
+  currentPeriodEnd?: string | null
+}
+
+/**
+ * Insert or update the subscription row for a given user.
+ * Uses stripe_customer_id as the conflict target so re-subscribing
+ * after cancellation updates the existing row rather than creating a duplicate.
+ */
+export async function upsertSubscription(
+  userId: number,
+  data: UpsertSubscriptionData
+): Promise<SubscriptionRow> {
+  const rows = await sql`
+    INSERT INTO subscriptions (
+      user_id,
+      stripe_customer_id,
+      stripe_subscription_id,
+      stripe_price_id,
+      plan_name,
+      status,
+      current_period_end,
+      updated_at
+    ) VALUES (
+      ${userId},
+      ${data.stripeCustomerId},
+      ${data.stripeSubscriptionId ?? null},
+      ${data.stripePriceId ?? null},
+      ${data.planName ?? null},
+      ${data.status},
+      ${data.currentPeriodEnd ?? null},
+      NOW()
+    )
+    ON CONFLICT (stripe_customer_id) DO UPDATE SET
+      stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+      stripe_price_id        = EXCLUDED.stripe_price_id,
+      plan_name              = EXCLUDED.plan_name,
+      status                 = EXCLUDED.status,
+      current_period_end     = EXCLUDED.current_period_end,
+      updated_at             = NOW()
+    RETURNING *
+  `
+  return rows[0] as SubscriptionRow
+}

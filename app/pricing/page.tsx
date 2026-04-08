@@ -1,11 +1,26 @@
+"use client"
+
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import {  Check, Users } from "lucide-react"
+import { Check } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function PricingPage() {
+  const { isAuthenticated, login } = useAuth()
+  const router = useRouter()
+
+  const handleGetStarted = async () => {
+    if (isAuthenticated) {
+      router.push("/dashboard/pricing")
+    } else {
+      await login()
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <Navigation />
@@ -50,11 +65,9 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Link href="/verify">
-              <Button variant="outline" className="w-full bg-transparent">
-                Get Started
-              </Button>
-            </Link>
+            <Button variant="outline" className="w-full bg-transparent" onClick={handleGetStarted}>
+              Get Started
+            </Button>
           </Card>
 
           {/* Professional Plan */}
@@ -99,9 +112,7 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Link href="/verify">
-              <Button className="w-full">Start Free Trial</Button>
-            </Link>
+            <Button className="w-full" onClick={handleGetStarted}>Subscribe</Button>
           </Card>
 
           {/* Enterprise Plan */}
@@ -109,7 +120,8 @@ export default function PricingPage() {
             <div className="mb-6">
               <h3 className="mb-2 text-2xl font-bold">Enterprise</h3>
               <div className="mb-4">
-                <span className="text-4xl font-bold">Custom</span>
+                <span className="text-4xl font-bold">$2500</span>
+                <span className="text-muted-foreground">/month</span>
               </div>
               <p className="text-sm text-muted-foreground">For large organizations and institutions</p>
             </div>
@@ -141,14 +153,12 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <a
-              href="https://wa.me/256781928954?text=Hi%2C%20I'm%20interested%20in%20Shaji%20Enterprise%20pricing"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" className="w-full bg-transparent">
-                Contact Sales
-              </Button>
+            <a href="mailto:info@shaji.org?subject=Enterprise%20Plan%20Inquiry">
+
+              <Button variant="outline"  className="w-full bg-transparent" onClick={handleGetStarted}>Subscribe</Button>
+              {/* <Button variant="outline" className="w-full bg-transparent">
+                Subscribe
+              </Button> */}
             </a>
           </Card>
         </div>
@@ -162,7 +172,7 @@ export default function PricingPage() {
                   {/* <Shield className="h-4 w-4" /> */}
                   For Educational Institutions
                 </div>
-                <h2 className="mb-4 text-3xl font-bold md:text-4xl">Institutional Pricing</h2>
+                <h2 className="mb-4 text-3xl font-bold md:text-4xl">Institutional</h2>
                 <p className="mb-6 text-lg text-muted-foreground">
                   Special pricing for universities, colleges, and educational institutions. Issue and verify unlimited
                   credentials for your students and alumni.
@@ -187,11 +197,7 @@ export default function PricingPage() {
                 </ul>
               </div>
               <div className="flex items-center justify-center">
-                <a
-                  href="https://wa.me/256781928954?text=Hi%2C%20I'd%20like%20to%20request%20a%20demo%20of%20Shaji"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href="mailto:info@shaji.org?subject=Request%20for%20Institutional%20Shaji%20Package">
                   <Button size="lg">Request a Demo</Button>
                 </a>
               </div>
@@ -279,9 +285,7 @@ export default function PricingPage() {
               Join thousands of users who trust Shaji for secure document verification
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/verify">
-                <Button size="lg">Start Verifying</Button>
-              </Link>
+              <Button size="lg" onClick={handleGetStarted}>Subscribe</Button>
               <a
                 href="https://wa.me/?text=Hi%2C%20I'm%20interested%20in%20Shaji%20and%20would%20like%20to%20speak%20with%20sales"
                 target="_blank"
