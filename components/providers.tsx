@@ -1,10 +1,16 @@
 "use client"
 
 import type React from "react"
-import { PrivyProvider } from "@privy-io/react-auth"
 import { useEffect, useState } from "react"
 import { AuthProvider } from "@/lib/auth-context"
 import { LogoSpinner } from "@/components/logo-spinner"
+import dynamic from "next/dynamic"
+
+// Dynamically import PrivyProvider to avoid SSR bundling issues
+const PrivyProvider = dynamic(
+  () => import("@privy-io/react-auth").then(mod => ({ default: mod.PrivyProvider })),
+  { ssr: false }
+)
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -12,34 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true)
 
-    const originalError = console.error
-    console.error = (...args: any[]) => {
-      const message = typeof args[0] === "string" ? args[0] : ""
-      if (message.includes("cross-origin") || message.includes("ethereum") || message.includes("Blocked a frame")) {
-        return
-      }
-      originalError.apply(console, args)
-    }
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const error = event.reason
-      if (
-        error &&
-        (error.message?.includes("cross-origin") ||
-          error.message?.includes("ethereum") ||
-          error.message?.includes("Blocked a frame"))
-      ) {
-        event.preventDefault()
-        console.log("[v0] Suppressed Privy cross-origin error in iframe environment")
-      }
-    }
-
-    window.addEventListener("unhandledrejection", handleUnhandledRejection)
-
-    return () => {
-      console.error = originalError
-      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
-    }
+    return () => {}
   }, [])
 
   if (!mounted) {

@@ -2,9 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { sql } from "@/lib/db"
 
-// Raw body is required for Stripe signature verification
-export const config = { api: { bodyParser: false } }
-
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get("stripe-signature")
