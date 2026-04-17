@@ -2,11 +2,14 @@
   "name": "shaji-website",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@abstract-foundation/agw-client": "latest",
@@ -79,10 +82,14 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^4.1.4",
+    "dotenv": "^17.4.2",
+    "fast-check": "^4.6.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   },
   "pnpm": {
     "overrides": {
