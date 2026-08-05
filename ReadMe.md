@@ -36,8 +36,4 @@ This project is a full-stack web and mobile solution built with:
 `cd Shaji-WebApp`
 `Install dependencies`
 `npm install`
-`npm run dev`     
-
-#Paypal
-Cliient ID=BAAE3cCB_Ky_jTRcaU9hjjdmUv87dRDHZbXmG1qajIF5qgDSN4wzYQqX-ohQXaPI5O5VBOr5h_aIYD-FdY
-Secret=EDUW9XhwNOhqTN-AKHGoJyAQVaFjs941nEC7xhIkrxAuJipc14ma8iYTC8-ur-a8n2E9x1TtUmEcF3yI
+`npm run dev`
