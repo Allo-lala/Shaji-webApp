@@ -33,23 +33,23 @@ describe('Bug Condition Exploration - Property 1: Upsert Operations Succeed With
     const userId = users[0].id
 
     // Attempt to upsert a subscription - this should now succeed
-    // because we have a unique constraint on stripe_customer_id
+    // because we have a unique constraint on payment_gateway_customer_id
     const result = await upsertSubscription(userId, {
-      stripeCustomerId: 'cus_bug_test_123',
+      paymentGatewayCustomerId: 'cus_bug_test_123',
       status: 'none'
     })
 
     // Verify the upsert succeeded
     expect(result).toBeDefined()
-    expect(result.stripe_customer_id).toBe('cus_bug_test_123')
+    expect(result.payment_gateway_customer_id).toBe('cus_bug_test_123')
     expect(result.status).toBe('none')
     expect(result.user_id).toBe(userId)
 
     console.log('✓ First upsert succeeded:', result.id)
 
-    // Try upserting again with the same stripe_customer_id - should update existing row
+    // Try upserting again with the same payment_gateway_customer_id - should update existing row
     const result2 = await upsertSubscription(userId, {
-      stripeCustomerId: 'cus_bug_test_123',
+      paymentGatewayCustomerId: 'cus_bug_test_123',
       status: 'active',
       planName: 'Pro Plan'
     })
@@ -62,19 +62,19 @@ describe('Bug Condition Exploration - Property 1: Upsert Operations Succeed With
     console.log('✓ Second upsert updated existing row:', result2.id)
 
     // Cleanup
-    await sql`DELETE FROM subscriptions WHERE stripe_customer_id = 'cus_bug_test_123'`
+    await sql`DELETE FROM subscriptions WHERE payment_gateway_customer_id = 'cus_bug_test_123'`
   })
 
-  it('should prevent duplicate stripe_customer_id inserts with unique constraint (Requirement 2.3)', async () => {
+  it('should prevent duplicate payment_gateway_customer_id inserts with unique constraint (Requirement 2.3)', async () => {
     // Get test user
     const users = await sql`SELECT id FROM users WHERE wallet_address = '0xBugTestWallet'`
     const userId = users[0].id
 
     const testCustomerId = 'cus_duplicate_test_' + Date.now()
 
-    // Insert first row with stripe_customer_id
+    // Insert first row with payment_gateway_customer_id
     const insert1 = await sql`
-      INSERT INTO subscriptions (user_id, stripe_customer_id, status)
+      INSERT INTO subscriptions (user_id, payment_gateway_customer_id, status)
       VALUES (${userId}, ${testCustomerId}, 'none')
       RETURNING id
     `
@@ -82,11 +82,11 @@ describe('Bug Condition Exploration - Property 1: Upsert Operations Succeed With
     expect(insert1[0].id).toBeDefined()
     console.log('✓ First insert succeeded:', insert1[0].id)
 
-    // Attempt to insert second row with same stripe_customer_id
+    // Attempt to insert second row with same payment_gateway_customer_id
     // This should now fail with unique constraint violation
     await expect(async () => {
       await sql`
-        INSERT INTO subscriptions (user_id, stripe_customer_id, status)
+        INSERT INTO subscriptions (user_id, payment_gateway_customer_id, status)
         VALUES (${userId}, ${testCustomerId}, 'active')
       `
     }).rejects.toThrow()
@@ -94,28 +94,28 @@ describe('Bug Condition Exploration - Property 1: Upsert Operations Succeed With
     console.log('✓ Second insert correctly rejected due to unique constraint')
 
     // Cleanup
-    await sql`DELETE FROM subscriptions WHERE stripe_customer_id = ${testCustomerId}`
+    await sql`DELETE FROM subscriptions WHERE payment_gateway_customer_id = ${testCustomerId}`
   })
 
-  it('should show unique constraint on stripe_customer_id in pg_constraint (Requirement 2.3)', async () => {
+  it('should show unique constraint on payment_gateway_customer_id in pg_constraint (Requirement 2.3)', async () => {
     // Query pg_constraint to verify unique constraint exists
     const constraints = await sql`
       SELECT conname, contype
       FROM pg_constraint
       WHERE conrelid = 'subscriptions'::regclass
         AND contype IN ('u', 'p')
-        AND conname LIKE '%stripe_customer_id%'
+        AND conname LIKE '%payment_gateway_customer_id%'
     `
 
-    console.log('Constraints found on stripe_customer_id:', constraints)
+    console.log('Constraints found on payment_gateway_customer_id:', constraints)
 
-    // Should find unique constraint on stripe_customer_id
+    // Should find unique constraint on payment_gateway_customer_id
     const uniqueConstraint = constraints.find((c: any) => 
-      c.contype === 'u' && c.conname.includes('stripe_customer_id')
+      c.contype === 'u' && c.conname.includes('payment_gateway_customer_id')
     )
 
     expect(uniqueConstraint).toBeDefined()
-    expect(uniqueConstraint.conname).toBe('unique_stripe_customer_id')
+    expect(uniqueConstraint.conname).toBe('unique_payment_gateway_customer_id')
     console.log('✓ Unique constraint found:', uniqueConstraint.conname)
 
     // Verify the constraint is of type 'u' (unique)
@@ -136,25 +136,25 @@ describe('Bug Condition Exploration - Property 1: Upsert Operations Succeed With
 
     await fc.assert(
       fc.asyncProperty(
-        // Generate random stripe customer IDs
+        // Generate random payment gateway customer IDs
         fc.string({ minLength: 10, maxLength: 30 }).map(s => `cus_pbt_${s}`),
         // Generate random status values
         fc.constantFrom('none', 'active', 'past_due', 'canceled'),
-        async (stripeCustomerId, status) => {
+        async (paymentGatewayCustomerId, status) => {
           // Every upsert should succeed on fixed schema
           try {
             const result = await upsertSubscription(userId, {
-              stripeCustomerId,
+              paymentGatewayCustomerId,
               status
             })
             
             // Verify the result is valid
             const isValid = result.id > 0 && 
-                           result.stripe_customer_id === stripeCustomerId &&
+                           result.payment_gateway_customer_id === paymentGatewayCustomerId &&
                            result.status === status
             
             // Cleanup
-            await sql`DELETE FROM subscriptions WHERE stripe_customer_id = ${stripeCustomerId}`
+            await sql`DELETE FROM subscriptions WHERE payment_gateway_customer_id = ${paymentGatewayCustomerId}`
             
             return isValid
           } catch (error: any) {
@@ -200,7 +200,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     
     // Insert test subscriptions using direct INSERT (avoiding upsert)
     await sql`
-      INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id, plan_name, status, current_period_end)
+      INSERT INTO subscriptions (user_id, payment_gateway_customer_id, payment_gateway_subscription_id, payment_gateway_plan_id, plan_name, status, current_period_end)
       VALUES 
         (${testUserId}, ${`cus_preserve_1_${timestamp}`}, ${`sub_preserve_1_${timestamp}`}, 'price_1', 'Pro Plan', 'active', NOW() + INTERVAL '30 days'),
         (${testUserId}, ${`cus_preserve_2_${timestamp}`}, ${`sub_preserve_2_${timestamp}`}, 'price_2', 'Basic Plan', 'past_due', NOW() + INTERVAL '15 days')
@@ -215,31 +215,31 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
   it('should query subscriptions by user_id correctly (Requirement 3.1)', async () => {
     const subscriptions = await sql`
       SELECT * FROM subscriptions WHERE user_id = ${testUserId}
-      ORDER BY stripe_customer_id
+      ORDER BY payment_gateway_customer_id
     `
 
     expect(subscriptions).toHaveLength(2)
-    expect(subscriptions[0].stripe_customer_id).toContain('cus_preserve_1')
+    expect(subscriptions[0].payment_gateway_customer_id).toContain('cus_preserve_1')
     expect(subscriptions[0].status).toBe('active')
-    expect(subscriptions[1].stripe_customer_id).toContain('cus_preserve_2')
+    expect(subscriptions[1].payment_gateway_customer_id).toContain('cus_preserve_2')
     expect(subscriptions[1].status).toBe('past_due')
   })
 
   /**
-   * Requirement 3.1: Query subscriptions by stripe_subscription_id
-   * Verify that SELECT queries by stripe_subscription_id return correct results
+   * Requirement 3.1: Query subscriptions by payment_gateway_subscription_id
+   * Verify that SELECT queries by payment_gateway_subscription_id return correct results
    */
-  it('should query subscriptions by stripe_subscription_id correctly (Requirement 3.1)', async () => {
+  it('should query subscriptions by payment_gateway_subscription_id correctly (Requirement 3.1)', async () => {
     // Get one of our test subscriptions first
     const ourSubs = await sql`
       SELECT * FROM subscriptions WHERE user_id = ${testUserId} LIMIT 1
     `
     expect(ourSubs.length).toBeGreaterThan(0)
     
-    const testSubId = ourSubs[0].stripe_subscription_id
+    const testSubId = ourSubs[0].payment_gateway_subscription_id
     
     const subscriptions = await sql`
-      SELECT * FROM subscriptions WHERE stripe_subscription_id = ${testSubId}
+      SELECT * FROM subscriptions WHERE payment_gateway_subscription_id = ${testSubId}
     `
 
     // Should find at least one subscription with this ID
@@ -247,7 +247,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     // Find our specific test subscription
     const ourSub = subscriptions.find((s: any) => s.user_id === testUserId)
     expect(ourSub).toBeDefined()
-    expect(ourSub.stripe_customer_id).toContain('cus_preserve_')
+    expect(ourSub.payment_gateway_customer_id).toContain('cus_preserve_')
     expect(ourSub.plan_name).toBe('Pro Plan')
   })
 
@@ -266,7 +266,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
 
     expect(subscription).toHaveLength(1)
     expect(subscription[0].user_id).toBe(testUserId)
-    expect(subscription[0].stripe_customer_id).toMatch(/^cus_preserve_/)
+    expect(subscription[0].payment_gateway_customer_id).toMatch(/^cus_preserve_/)
   })
 
   /**
@@ -284,7 +284,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     const tempUserId = tempUsers[0].id
 
     await sql`
-      INSERT INTO subscriptions (user_id, stripe_customer_id, status)
+      INSERT INTO subscriptions (user_id, payment_gateway_customer_id, status)
       VALUES (${tempUserId}, 'cus_temp_delete', 'none')
     `
 
@@ -316,7 +316,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     // Should find at least our test subscription
     const ourSubscription = activeSubscriptions.find((s: any) => s.user_id === testUserId)
     expect(ourSubscription).toBeDefined()
-    expect(ourSubscription.stripe_customer_id).toContain('cus_preserve_1')
+    expect(ourSubscription.payment_gateway_customer_id).toContain('cus_preserve_1')
   })
 
   /**
@@ -330,19 +330,19 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     `
     expect(ourSubs.length).toBeGreaterThan(0)
     
-    const testCustomerId = ourSubs[0].stripe_customer_id
+    const testCustomerId = ourSubs[0].payment_gateway_customer_id
     
     // Update subscription status for our specific test user
     await sql`
       UPDATE subscriptions
       SET status = 'canceled', updated_at = NOW()
-      WHERE stripe_customer_id = ${testCustomerId} AND user_id = ${testUserId}
+      WHERE payment_gateway_customer_id = ${testCustomerId} AND user_id = ${testUserId}
     `
 
     // Verify update
     const updated = await sql`
       SELECT * FROM subscriptions 
-      WHERE stripe_customer_id = ${testCustomerId} AND user_id = ${testUserId}
+      WHERE payment_gateway_customer_id = ${testCustomerId} AND user_id = ${testUserId}
     `
 
     expect(updated.length).toBeGreaterThanOrEqual(1)
@@ -368,7 +368,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
           for (const sub of subscriptions) {
             if (typeof sub.id !== 'number') return false
             if (typeof sub.user_id !== 'number') return false
-            if (typeof sub.stripe_customer_id !== 'string') return false
+            if (typeof sub.payment_gateway_customer_id !== 'string') return false
             if (typeof sub.status !== 'string') return false
           }
 
@@ -400,7 +400,7 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
           // If results exist, they should have valid structure
           for (const sub of result) {
             if (typeof sub.user_id !== 'number') return false
-            if (typeof sub.stripe_customer_id !== 'string') return false
+            if (typeof sub.payment_gateway_customer_id !== 'string') return false
           }
 
           return true
@@ -452,13 +452,13 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     // For small tables, PostgreSQL may choose seq scan over index scan
     expect(userIdPlanText.length).toBeGreaterThan(0)
 
-    // Query by stripe_customer_id - should use unique_stripe_customer_id index
+    // Query by payment_gateway_customer_id - should use unique_payment_gateway_customer_id index
     // (the unique constraint automatically creates an index)
-    const ourSubs = await sql`SELECT stripe_customer_id FROM subscriptions WHERE user_id = ${testUserId} LIMIT 1`
-    const testCustomerId = ourSubs[0].stripe_customer_id
+    const ourSubs = await sql`SELECT payment_gateway_customer_id FROM subscriptions WHERE user_id = ${testUserId} LIMIT 1`
+    const testCustomerId = ourSubs[0].payment_gateway_customer_id
     
     const customerIdPlan = await sql`
-      EXPLAIN SELECT * FROM subscriptions WHERE stripe_customer_id = ${testCustomerId}
+      EXPLAIN SELECT * FROM subscriptions WHERE payment_gateway_customer_id = ${testCustomerId}
     `
     const customerIdPlanText = customerIdPlan.map((row: any) => row['QUERY PLAN']).join(' ')
     // Should use the unique constraint's index (or seq scan if table is small)
@@ -480,6 +480,6 @@ describe('Preservation Property Tests - Property 2: Existing Operations Unchange
     const indexNames = indexes.map((idx: any) => idx.indexname)
     expect(indexNames).toContain('idx_subscriptions_user_id')
     expect(indexNames).toContain('idx_subscriptions_status')
-    expect(indexNames).toContain('unique_stripe_customer_id')
+    expect(indexNames).toContain('unique_payment_gateway_customer_id')
   })
 })

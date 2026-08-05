@@ -20,17 +20,7 @@ This project is a full-stack web and mobile solution built with:
 
 ## Connect Your Wallet
    ![Wallet Page](public/two.png)
-
-## Upload 
-  ![Upload file](public/upload.png)
-## Dashboard Overview
-  ![Upload file](public/fine.png)
-
-## Congrats 
-  ![Success Page](public/verified.png)
-
-## Ooops 
-  ![sorry Page](public/failed.png)  
+ 
 
 ## 👥 Team
 
@@ -47,3 +37,7 @@ This project is a full-stack web and mobile solution built with:
 `Install dependencies`
 `npm install`
 `npm run dev`     
+
+#Paypal
+Cliient ID=BAAE3cCB_Ky_jTRcaU9hjjdmUv87dRDHZbXmG1qajIF5qgDSN4wzYQqX-ohQXaPI5O5VBOr5h_aIYD-FdY
+Secret=EDUW9XhwNOhqTN-AKHGoJyAQVaFjs941nEC7xhIkrxAuJipc14ma8iYTC8-ur-a8n2E9x1TtUmEcF3yI

@@ -76,9 +76,9 @@ export async function getSharedFiles(userId: number) {
 export interface SubscriptionRow {
   id: number
   user_id: number
-  stripe_customer_id: string
-  stripe_subscription_id: string | null
-  stripe_price_id: string | null
+  payment_gateway_customer_id: string
+  payment_gateway_subscription_id: string | null
+  payment_gateway_plan_id: string | null
   plan_name: string | null
   status: string
   current_period_end: string | null
@@ -104,9 +104,9 @@ export async function getSubscriptionByWallet(
 }
 
 export interface UpsertSubscriptionData {
-  stripeCustomerId: string
-  stripeSubscriptionId?: string | null
-  stripePriceId?: string | null
+  paymentGatewayCustomerId: string
+  paymentGatewaySubscriptionId?: string | null
+  paymentGatewayPlanId?: string | null
   planName?: string | null
   status: string
   currentPeriodEnd?: string | null
@@ -114,7 +114,7 @@ export interface UpsertSubscriptionData {
 
 /**
  * Insert or update the subscription row for a given user.
- * Uses stripe_customer_id as the conflict target so re-subscribing
+ * Uses payment_gateway_customer_id as the conflict target so re-subscribing
  * after cancellation updates the existing row rather than creating a duplicate.
  */
 export async function upsertSubscription(
@@ -124,26 +124,26 @@ export async function upsertSubscription(
   const rows = await sql`
     INSERT INTO subscriptions (
       user_id,
-      stripe_customer_id,
-      stripe_subscription_id,
-      stripe_price_id,
+      payment_gateway_customer_id,
+      payment_gateway_subscription_id,
+      payment_gateway_plan_id,
       plan_name,
       status,
       current_period_end,
       updated_at
     ) VALUES (
       ${userId},
-      ${data.stripeCustomerId},
-      ${data.stripeSubscriptionId ?? null},
-      ${data.stripePriceId ?? null},
+      ${data.paymentGatewayCustomerId},
+      ${data.paymentGatewaySubscriptionId ?? null},
+      ${data.paymentGatewayPlanId ?? null},
       ${data.planName ?? null},
       ${data.status},
       ${data.currentPeriodEnd ?? null},
       NOW()
     )
-    ON CONFLICT (stripe_customer_id) DO UPDATE SET
-      stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-      stripe_price_id        = EXCLUDED.stripe_price_id,
+    ON CONFLICT (payment_gateway_customer_id) DO UPDATE SET
+      payment_gateway_subscription_id = EXCLUDED.payment_gateway_subscription_id,
+      payment_gateway_plan_id        = EXCLUDED.payment_gateway_plan_id,
       plan_name              = EXCLUDED.plan_name,
       status                 = EXCLUDED.status,
       current_period_end     = EXCLUDED.current_period_end,

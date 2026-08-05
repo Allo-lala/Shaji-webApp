@@ -1,15 +1,12 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { loadStripe } from "@stripe/stripe-js"
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
 import { Check, CreditCard, Loader2, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string)
 
 interface SubscriptionStatus {
   status: "none" | "active" | "past_due" | "canceled"
@@ -31,7 +28,7 @@ const PLANS: Plan[] = [
     id: "starters",
     name: "Starters Pack",
     price: "$199.99",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTERS ?? "",
+    priceId: process.env.NEXT_PUBLIC_PAYPAL_PLAN_STARTERS ?? "",
     description: "Perfect for individuals verifying occasional documents",
     features: [
       "5 verifications per month",
@@ -44,7 +41,7 @@ const PLANS: Plan[] = [
     id: "professional",
     name: "Professional",
     price: "$499.99",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL ?? "",
+    priceId: process.env.NEXT_PUBLIC_PAYPAL_PLAN_PROFESSIONAL ?? "",
     description: "For professionals and small teams",
     features: [
       "Unlimited verifications",
@@ -59,7 +56,7 @@ const PLANS: Plan[] = [
     id: "enterprise",
     name: "Enterprise",
     price: "$2,500",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ENTERPRISE ?? "",
+    priceId: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ENTERPRISE ?? "",
     description: "For large organizations and institutions",
     features: [
       "Everything in Professional",
@@ -73,7 +70,7 @@ const PLANS: Plan[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// SubscribeForm — rendered inside an <Elements> wrapper
+// SubscribeForm — PayPal subscription button component
 // ---------------------------------------------------------------------------
 interface SubscribeFormProps {
   plan: Plan
@@ -82,155 +79,99 @@ interface SubscribeFormProps {
   onCancel: () => void
 }
 
-function SubscribeFormInner({ plan, walletAddress, onSuccess, onCancel }: SubscribeFormProps) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+function SubscribeForm({ plan, walletAddress, onSuccess, onCancel }: SubscribeFormProps) {
   const [error, setError] = useState<string | null>(null)
-  const [initializing, setInitializing] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  // On mount: create a SetupIntent and get the clientSecret
-  useEffect(() => {
-    let cancelled = false
-    async function init() {
-      try {
-        const res = await fetch("/api/stripe/setup-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ walletAddress }),
-        })
-        const data = await res.json()
-        if (!cancelled) {
-          if (data.clientSecret) {
-            setClientSecret(data.clientSecret)
-          } else {
-            setError(data.error ?? "Failed to initialize payment form.")
-          }
-        }
-      } catch {
-        if (!cancelled) setError("Failed to initialize payment form.")
-      } finally {
-        if (!cancelled) setInitializing(false)
+  const createSubscription = async () => {
+    try {
+      setError(null)
+      const res = await fetch("/api/paypal/create-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          walletAddress, 
+          planId: plan.priceId 
+        }),
+      })
+      
+      const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create subscription")
       }
+      
+      return data.subscriptionId
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create subscription"
+      setError(errorMessage)
+      throw err
     }
-    init()
-    return () => { cancelled = true }
-  }, [walletAddress])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!stripe || !elements || !clientSecret) return
-
-    setLoading(true)
-    setError(null)
-
-    const cardElement = elements.getElement(CardElement)
-    if (!cardElement) {
-      setError("Card element not found.")
-      setLoading(false)
-      return
-    }
-
-    // Confirm the card setup
-    const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-      payment_method: { card: cardElement },
-    })
-
-    if (confirmError) {
-      setError(confirmError.message ?? "Card confirmation failed.")
-      setLoading(false)
-      return
-    }
-
-    const paymentMethodId =
-      typeof setupIntent?.payment_method === "string"
-        ? setupIntent.payment_method
-        : setupIntent?.payment_method?.id
-
-    if (!paymentMethodId) {
-      setError("Could not retrieve payment method.")
-      setLoading(false)
-      return
-    }
-
-    // Create the subscription
-    const res = await fetch("/api/stripe/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        walletAddress,
-        paymentMethodId,
-        priceId: plan.priceId,
-        planName: plan.name,
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error ?? "Failed to activate subscription.")
-      setLoading(false)
-      return
-    }
-
-    setLoading(false)
-    onSuccess()
   }
 
-  if (initializing) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+  const onApprove = async (data: any) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const res = await fetch("/api/paypal/approve-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress,
+          subscriptionId: data.subscriptionID,
+        }),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to activate subscription")
+      }
+
+      onSuccess()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to activate subscription"
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onError = (err: any) => {
+    console.error("PayPal error:", err)
+    setError("Payment failed. Please try again.")
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-md border border-border bg-background p-3">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: "14px",
-                color: "hsl(var(--foreground))",
-                "::placeholder": { color: "hsl(var(--muted-foreground))" },
-              },
-            },
-          }}
-        />
-      </div>
+    <div className="space-y-4">
+      <PayPalButtons
+        createSubscription={createSubscription}
+        onApprove={onApprove}
+        onError={onError}
+        disabled={loading}
+        style={{
+          layout: "vertical",
+          color: "gold",
+          shape: "rect",
+          label: "subscribe",
+        }}
+      />
 
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={loading || !stripe || !clientSecret} className="flex-1">
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing…
-            </>
-          ) : (
-            `Subscribe — ${plan.price}/mo`
-          )}
-        </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-// Wrap SubscribeFormInner with the Stripe Elements provider
-function SubscribeForm(props: SubscribeFormProps) {
-  return (
-    <Elements stripe={stripePromise}>
-      <SubscribeFormInner {...props} />
-    </Elements>
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={onCancel} 
+        disabled={loading}
+        className="w-full"
+      >
+        Cancel
+      </Button>
+    </div>
   )
 }
 
@@ -252,7 +193,7 @@ export default function DashboardPricingPage() {
   const fetchSubscription = useCallback(async () => {
     if (!walletAddress) return
     try {
-      const res = await fetch(`/api/stripe/subscription?walletAddress=${walletAddress}`)
+      const res = await fetch(`/api/paypal/subscription?walletAddress=${walletAddress}`)
       const data: SubscriptionStatus = await res.json()
       setSubscription(data)
     } catch {
@@ -276,7 +217,7 @@ export default function DashboardPricingPage() {
     setCanceling(true)
     setCancelError(null)
     try {
-      const res = await fetch("/api/stripe/cancel", {
+      const res = await fetch("/api/paypal/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ walletAddress }),
@@ -306,12 +247,19 @@ export default function DashboardPricingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold">Pricing</h2>
-        <p className="text-sm text-muted-foreground">Choose the plan that fits your needs</p>
-      </div>
+    <PayPalScriptProvider 
+      options={{
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+        vault: true,
+        intent: "subscription",
+      }}
+    >
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-bold">Pricing</h2>
+          <p className="text-sm text-muted-foreground">Choose the plan that fits your needs</p>
+        </div>
 
       {/* Active subscription info */}
       {subscription.status === "active" && subscription.currentPeriodEnd && (
@@ -386,7 +334,7 @@ export default function DashboardPricingPage() {
               {/* Subscribe form (inline) */}
               {showForm && walletAddress && (
                 <div className="mb-4 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="mb-3 text-sm font-medium">Enter your card details</p>
+                  <p className="mb-3 text-sm font-medium">Subscribe with PayPal</p>
                   <SubscribeForm
                     plan={plan}
                     walletAddress={walletAddress}
@@ -432,5 +380,6 @@ export default function DashboardPricingPage() {
         })}
       </div>
     </div>
+    </PayPalScriptProvider>
   )
 }
