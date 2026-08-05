@@ -380,14 +380,6 @@ async function getAccessToken(): Promise<string> {
       ? "https://api-m.paypal.com/v1/oauth2/token"
       : "https://api-m.sandbox.paypal.com/v1/oauth2/token"
 
-  console.log("PayPal Auth Debug:", {
-    mode,
-    url,
-    clientIdLength: clientId.length,
-    clientSecretLength: clientSecret.length,
-    clientIdPrefix: clientId.substring(0, 10) + "...",
-  })
-
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
 
   const response = await fetch(url, {
@@ -401,11 +393,7 @@ async function getAccessToken(): Promise<string> {
 
   if (!response.ok) {
     const errorBody = await response.text()
-    console.error("PayPal Auth Failed:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorBody,
-    })
+    console.error("PayPal authentication failed:", response.status, errorBody)
     throw new Error(
       "Failed to authenticate with PayPal. Please verify your PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET."
     )
